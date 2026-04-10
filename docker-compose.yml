@@ -1,0 +1,45 @@
+# ============================================
+# CordovaBuilder Admin Python - Docker Compose 配置
+# ============================================
+version: '3.8'
+
+services:
+  # API 服务
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cordovabuilder-python-api
+    ports:
+      - "3000:3000"
+    environment:
+      # 覆盖 .env 中的配置（可选）
+      - PORT=3000
+      - LOGURU_LEVEL=INFO
+    volumes:
+      # 挂载工作区目录（持久化构建产物）
+      - ./workspace:/workspace
+      # 挂载下载目录（避免重复下载）
+      - ./downloads/node:/tmp/node-install
+      - ./downloads/java:/tmp/java-install
+      - ./downloads/gradle:/tmp/gradle-install
+      - ./downloads/cmdline:/tmp/cmdline-tools-install
+    restart: unless-stopped
+    networks:
+      - cordovabuilder-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  cordovabuilder-network:
+    driver: bridge
+
+volumes:
+  workspace:
+    driver: local
+  downloads:
+    driver: local
