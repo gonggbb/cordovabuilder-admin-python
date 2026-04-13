@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         env_file = ".env"  # 从 .env 文件读取配置
         env_file_encoding = "utf-8"  # .env 文件编码
         case_sensitive = True  # 区分大小写
-        # extra = "ignore"  # 忽略额外的环境变量，不报错
+        extra = "ignore"  # 忽略未在 Settings 中定义的环境变量（如 JAVA_HOME, ANDROID_HOME 等）
 
 
 # 创建配置实例
@@ -98,7 +98,7 @@ app.add_middleware(
 )
 
 # 注册路由
-app.include_router(environment.router, prefix="/api/environment", tags=["环境管理"])
+app.include_router(environment.router, prefix="/env", tags=["环境管理"])
 
 
 @app.get("/")

@@ -32,46 +32,30 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 安装系统级依赖（JDK, Android SDK 等）
+# 安装系统级依赖（JDK, Android SDK, Nginx 等）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Java JDK 17
-    openjdk-17-jdk-headless \
-    # Android SDK 依赖
     wget \
+    curl \
     unzip \
-    git \
+    tar \
+    xz-utils \
+    ca-certificates \
+    # Nginx (用于托管前端静态文件)
+    nginx \
+    # 中文语言环境支持
+    locales \
+    && sed -i '/zh_CN.UTF-8/s/^# //g' /etc/locale.gen \
+    && locale-gen \
+    # 更新 SSL 证书
+    && update-ca-certificates \
     # 清理缓存
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# 设置 Java 环境变量
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
-    PATH=$JAVA_HOME/bin:$PATH
-
-# 创建必要的目录
-RUN mkdir -p /opt/android-sdk/cmdline-tools \
-    && mkdir -p /opt/node \
-    && mkdir -p /opt/gradle \
-    && mkdir -p /workspace \
-    && mkdir -p /tmp/node-install \
-    && mkdir -p /tmp/java-install \
-    && mkdir -p /tmp/gradle-install \
-    && mkdir -p /tmp/cmdline-tools-install
-
-# 设置 Android SDK 环境变量
-ENV ANDROID_HOME=/opt/android-sdk \
-    PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
-
-# 下载并安装 Android Command Line Tools
-RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip \
-    -O /tmp/cmdline-tools.zip \
-    && unzip /tmp/cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools \
-    && mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest \
-    && rm /tmp/cmdline-tools.zip \
-    # 接受所有许可证
-    && yes | sdkmanager --licenses > /dev/null 2>&1 \
-    # 安装基本组件
-    && sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" > /dev/null 2>&1
+# 设置中文语言环境
+ENV LANG=zh_CN.UTF-8 \
+    LANGUAGE=zh_CN:zh \
+    LC_ALL=zh_CN.UTF-8
 
 # 设置工作目录
 WORKDIR /app
@@ -84,14 +68,49 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
 # 复制 Docker 环境配置
-COPY .env.docker .env
+COPY .env .env
+
+# 复制前端静态文件到 Nginx 目录
+COPY dist/ /var/www/html/
+
+# 配置 Nginx
+RUN echo 'server { \
+    listen 80; \
+    server_name localhost; \
+    \
+    # 前端静态文件 \
+    location / { \
+        root /var/www/html; \
+        index index.html; \
+        try_files $uri $uri/ /index.html; \
+    } \
+    \
+    # API 反向代理到 FastAPI \
+    location /api/ { \
+        proxy_pass http://127.0.0.1:3000/api/; \
+        proxy_set_header Host $host; \
+        proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+    \
+    # 健康检查接口 \
+    location /health { \
+        proxy_pass http://127.0.0.1:3000/health; \
+        proxy_set_header Host $host; \
+    } \
+}' > /etc/nginx/sites-available/default
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 80
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')" || exit 1
+    CMD curl -f http://localhost/health || exit 1
+
+# 复制启动脚本
+COPY start-container.sh /start.sh
+RUN chmod +x /start.sh
 
 # 启动命令
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["/start.sh"]

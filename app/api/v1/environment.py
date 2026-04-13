@@ -74,7 +74,7 @@ async def setup_environment(request: SetupEnvironmentRequest):
 
 
 
-@router.get("/presets")
+@router.get("/cordova-presets")
 def get_presets():
     """
     获取可用的预设配置列表

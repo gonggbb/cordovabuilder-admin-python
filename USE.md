@@ -314,3 +314,101 @@ Help:
 
     poetry list test
 ```
+
+# 停止旧容器
+
+docker-compose down
+
+# 重新构建并启动
+
+docker-compose up -d --build
+
+# 查看日志确认启动成功
+
+docker-compose logs -f app-service
+
+# 使用 ca15 预设（最新）
+
+./setup_cordova_env.sh --profile ca15
+
+# 自定义所有版本
+
+./setup_cordova_env.sh \
+ --node 20.19.5 \
+ --java-major 17 \
+ --java 17.0.10+7 \
+ --gradle 8.14.2 \
+ --build-tools 36.0.0 \
+ --platform 36
+
+# 停止旧容器
+
+docker-compose down
+
+# 重新构建并启动
+
+docker-compose up -d --build
+
+# 查看日志确认启动成功
+
+docker-compose logs -f app-service
+
+# 启动
+
+1. 初始化阶段 (L19-L49)
+   ├─ 设置默认配置 (PROFILE="ca12")
+   ├─ 初始化版本变量 (NODE_VERSION, JAVA_MAJOR 等)
+   ├─ 设置安装目录路径 (/opt/node, /opt/java 等)
+   └─ 设置缓存目录路径 (/tmp/node-install 等)
+
+2. 参数解析阶段 (L108-L140)
+   ├─ 解析命令行参数 (--profile, --node, --java 等)
+   └─ 验证预设配置是否有效
+
+3. 权限检测 (L142-L147)
+   ├─ 检查当前用户是否为 root
+   └─ 设置 SUDO 变量 (sudo 或空)
+
+4. 工具函数定义 (L151-L246)
+   ├─ require_cmd() - 检查命令是否存在
+   ├─ download_if_missing() - 下载文件
+   ├─ detect_arch() - 检测系统架构
+   ├─ detect_jdk_arch() - 检测 JDK 架构
+   ├─ get_latest_temurin_url() - 获取最新 JDK URL
+   └─ get_temurin_url_from_version() - 根据版本号获取 JDK URL
+
+5. 安装函数定义 (L250-L389)
+   ├─ install_node() - 安装 Node.js
+   ├─ install_gradle() - 安装 Gradle
+   ├─ install_java() - 安装 Java JDK
+   ├─ install_cmdline_tools() - 安装 Android Cmdline Tools
+   ├─ sdkmanager_cmd() - 获取 sdkmanager 路径
+   └─ install_android_packages() - 安装 Android SDK 组件
+
+6. 依赖检查 (L397-L400)
+   ├─ require_cmd tar
+   ├─ require_cmd unzip
+   └─ require_cmd sed
+
+7. 应用预设配置 (L403)
+   └─ apply_preset - 根据 PROFILE 设置具体版本
+
+8. 打印配置信息 (L405-L414)
+   └─ 显示当前配置的所有版本信息
+
+9. 执行安装流程 (L417-L422)
+   ├─ install_node "$NODE_VERSION"           ← 第一步：安装 Node.js
+   ├─ install_java "$JAVA_MAJOR" "$JAVA_VERSION"  ← 第二步：安装 Java JDK
+   ├─ install_gradle "$GRADLE_VERSION" ← 第三步：安装 Gradle
+   ├─ install_cmdline_tools "$CMDLINE_TOOLS_VERSION"  ← 第四步：安装 Android Cmdline Tools
+   └─ install_android_packages "$BUILD_TOOLS_VERSION" "$PLATFORM_API" ← 第五步：安装 Android SDK 组件
+
+10. 创建符号链接 (L425-L432)
+    ├─ JAVA_ROOT/current → 选择的 JDK 版本
+    └─ GRADLE_ROOT/current → 选择的 Gradle 版本
+
+11. 写入全局环境变量 (L434)
+    └─ write_global_env - 创建 /etc/profile.d/cordova-env.sh
+
+12. 完成提示 (L436-L443)
+    └─ 显示成功信息和激活说明
