@@ -412,3 +412,7 @@ docker-compose logs -f app-service
 
 12. 完成提示 (L436-L443)
     └─ 显示成功信息和激活说明
+
+GRADLE_HOME=/opt/gradle/current
+错误: 加载主类 com.android.sdklib.tool.sdkmanager.SdkManagerCli 时出现 LinkageError
+java.lang.UnsupportedClassVersionError: com/android/sdklib/tool/sdkmanager/SdkManagerCli has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0

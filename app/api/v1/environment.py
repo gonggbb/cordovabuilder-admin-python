@@ -1,3 +1,5 @@
+import json
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -40,6 +42,33 @@ async def setup_environment(request: SetupEnvironmentRequest):
         dict: 执行结果，包含成功状态、输出信息等
     """
     try:
+        # 如果用户没有指定具体版本，则从预设配置中自动补全
+        if not any([request.node_version, request.java_major, request.gradle_version]):
+            config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'configs', 'env_presets.json')
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    presets = json.load(f)
+                
+                if request.profile in presets:
+                    profile_config = presets[request.profile]
+                    profile_details = profile_config.get('profile', {})
+                    
+                    # 仅当用户未提供时才使用预设值
+                    if not request.node_version:
+                        request.node_version = profile_details.get('node')
+                    if not request.java_major:
+                        request.java_major = str(profile_details.get('java'))
+                    if not request.gradle_version:
+                        request.gradle_version = profile_details.get('gradle')
+                    if not request.build_tools_version:
+                        # 处理 buildTools 中的 ^ 符号
+                        bt = profile_config.get('buildTools', '')
+                        request.build_tools_version = bt.lstrip('^')
+                    if not request.platform_api:
+                        request.platform_api = str(profile_details.get('sdk'))
+            except Exception as e:
+                logger.warning(f"Could not load presets for auto-fill: {e}")
+
         result = await script_executor.setup_cordova_environment(
             profile=request.profile,
             node_version=request.node_version,
@@ -82,60 +111,13 @@ def get_presets():
     Returns:
         dict: 预设配置信息
     """
-    presets = {
-        "ca11": {
-            "name": "cordova-12-ca11",
-            "description": "Cordova 12 + cordova-android 11.0.x",
-            "cordovaVersion": "12.x",
-            "cordovaAndroid": "11.0.x",
-            "buildTools": "^32.0.0",
-            "profile": {
-                "sdk": "32.0.0",
-                "gradle": "7.4.2",
-                "java": "11",
-                "node": "18.20.8"
-            }
-        },
-        "ca12": {
-            "name": "cordova-12-ca12",
-            "description": "Cordova 12 + cordova-android 12.0.x",
-            "cordovaVersion": "12.x",
-            "cordovaAndroid": "12.0.x",
-            "buildTools": "^33.0.0",
-            "profile": {
-                "sdk": "33.0.0",
-                "gradle": "7.6",
-                "java": "17",
-                "node": "18.20.8"
-            }
-        },
-        "ca14": {
-            "name": "cordova-13-ca14",
-            "description": "Cordova 13 + cordova-android 14.0.x",
-            "cordovaVersion": "13.x",
-            "cordovaAndroid": "14.0.x",
-            "buildTools": "^35.0.0",
-            "profile": {
-                "sdk": "35.0.0",
-                "gradle": "8.13",
-                "java": "17",
-                "node": "20.19.5"
-            }
-        },
-        "ca15": {
-            "name": "cordova-13-ca15",
-            "description": "Cordova 13 + cordova-android 15.0.x",
-            "cordovaVersion": "13.x",
-            "cordovaAndroid": "15.0.x",
-            "buildTools": "^36.0.0",
-            "profile": {
-                "sdk": "36.0.0",
-                "gradle": "8.14.2",
-                "java": "17",
-                "node": "20.19.5"
-            }
-        }
-    }
+    # 从共享的 JSON 配置文件中读取
+    config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'configs', 'env_presets.json')
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            presets = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load environment presets: {str(e)}")
     
     return {
         "presets": presets,

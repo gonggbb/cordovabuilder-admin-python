@@ -15,7 +15,7 @@
 #   ca14: Cordova 13 + cordova-android 14.x (build-tools 35.0.0, gradle 8.13, Java 17, Node 20.19.5)
 #   ca15: Cordova 13 + cordova-android 15.x (build-tools 36.0.0, gradle 8.14.2, Java 17, Node 20.19.5)
 # ============================================================================
-
+# 严格模式，确保脚本在遇到错误时立即退出，并且未定义的变量会导致错误
 set -euo pipefail
 
 # ============================================================================
@@ -28,7 +28,7 @@ NODE_VERSION=""
 JAVA_MAJOR=""
 JAVA_VERSION=""
 GRADLE_VERSION=""
-CMDLINE_TOOLS_VERSION="14742923"
+CMDLINE_TOOLS_VERSION=""
 BUILD_TOOLS_VERSION=""
 PLATFORM_API=""
 
@@ -46,6 +46,24 @@ CMDLINE_CACHE="/tmp/cmdline-tools-install"
 
 # ============================================================================
 # 帮助信息
+# ============================================================================
+
+# 显示使用帮助信息并退出
+# 
+# 功能说明:
+#   向标准错误输出脚本的使用说明、参数选项和示例命令
+#   然后以退出码 2 终止脚本执行
+# 
+# 参数:
+#   无
+# 
+# 返回值:
+#   不返回，直接调用 exit 2 终止脚本
+# 
+# 使用场景:
+#   - 用户传入 -h 或 --help 参数时
+#   - 用户传入未知参数时
+#   - 预设配置无效时
 # ============================================================================
 usage() {
   cat >&2 <<'EOF'
@@ -66,15 +84,43 @@ EOF
 # ============================================================================
 # 预设配置应用
 # ============================================================================
+
+# 根据预设配置文件名应用对应的版本配置
+# 
+# 功能说明:
+#   根据全局变量 PROFILE 的值，为各个组件设置默认版本号
+#   如果用户已通过命令行参数指定了某个版本，则保留用户的设置（使用 :- 语法）
+# 
+# 支持的预设配置:
+#   ca11: Node 18.20.8, Java 11 (latest), Gradle 7.4.2, build-tools 32.0.0, platform 32
+#   ca12: Node 18.20.8, Java 17.0.10+7, Gradle 7.6, build-tools 33.0.2, platform 33
+#   ca14: Node 20.19.5, Java 17.0.10+7, Gradle 8.13, build-tools 35.0.0, platform 35
+#   ca15: Node 20.19.5, Java 17.0.10+7, Gradle 8.14.2, build-tools 36.0.0, platform 36
+# 
+# 参数:
+#   无（依赖全局变量 PROFILE）
+# 
+# 返回值:
+#   无显式返回值
+# 
+# 影响的全局变量:
+#   - NODE_VERSION: Node.js 版本号
+#   - JAVA_MAJOR: Java 主版本号
+#   - JAVA_VERSION: Java 具体版本号
+#   - GRADLE_VERSION: Gradle 版本号
+#   - BUILD_TOOLS_VERSION: Android build-tools 版本号
+#   - PLATFORM_API: Android Platform API 级别
+# ============================================================================
 apply_preset() {
   case "$PROFILE" in
     ca11)
       NODE_VERSION="${NODE_VERSION:-18.20.8}"
-      JAVA_MAJOR="${JAVA_MAJOR:-11}"
-      JAVA_VERSION="${JAVA_VERSION:-}" # latest 11
+      JAVA_MAJOR="${JAVA_MAJOR:-17}"
+      JAVA_VERSION="${JAVA_VERSION:-17.0.10+7}" 
       GRADLE_VERSION="${GRADLE_VERSION:-7.4.2}"
       BUILD_TOOLS_VERSION="${BUILD_TOOLS_VERSION:-32.0.0}"
       PLATFORM_API="${PLATFORM_API:-32}"
+      CMDLINE_TOOLS_VERSION="${CMDLINE_TOOLS_VERSION:-14742923}"
       ;;
     ca12)
       NODE_VERSION="${NODE_VERSION:-18.20.8}"
@@ -83,6 +129,16 @@ apply_preset() {
       GRADLE_VERSION="${GRADLE_VERSION:-7.6}"
       BUILD_TOOLS_VERSION="${BUILD_TOOLS_VERSION:-33.0.2}"
       PLATFORM_API="${PLATFORM_API:-33}"
+      CMDLINE_TOOLS_VERSION="${CMDLINE_TOOLS_VERSION:-14742923}"
+      ;;
+    ca13)
+      NODE_VERSION="${NODE_VERSION:-20.19.5}"
+      JAVA_MAJOR="${JAVA_MAJOR:-17}"
+      JAVA_VERSION="${JAVA_VERSION:-17.0.10+7}"
+      GRADLE_VERSION="${GRADLE_VERSION:-8.7}"
+      BUILD_TOOLS_VERSION="${BUILD_TOOLS_VERSION:-34.0.0}"
+      PLATFORM_API="${PLATFORM_API:-34}"
+      CMDLINE_TOOLS_VERSION="${CMDLINE_TOOLS_VERSION:-14742923}"
       ;;
     ca14)
       NODE_VERSION="${NODE_VERSION:-20.19.5}"
@@ -91,7 +147,9 @@ apply_preset() {
       GRADLE_VERSION="${GRADLE_VERSION:-8.13}"
       BUILD_TOOLS_VERSION="${BUILD_TOOLS_VERSION:-35.0.0}"
       PLATFORM_API="${PLATFORM_API:-35}"
+      CMDLINE_TOOLS_VERSION="${CMDLINE_TOOLS_VERSION:-14742923}"
       ;;
+
     ca15)
       NODE_VERSION="${NODE_VERSION:-20.19.5}"
       JAVA_MAJOR="${JAVA_MAJOR:-17}"
@@ -99,10 +157,18 @@ apply_preset() {
       GRADLE_VERSION="${GRADLE_VERSION:-8.14.2}"
       BUILD_TOOLS_VERSION="${BUILD_TOOLS_VERSION:-36.0.0}"
       PLATFORM_API="${PLATFORM_API:-36}"
+      CMDLINE_TOOLS_VERSION="${CMDLINE_TOOLS_VERSION:-14742923}"
+
       ;;
   esac
 }
-
+# $# 代表参数个数
+# $0: 脚本或函数本身的名称。
+# $1, $2, $3...: 第 1、第 2、第 3 个参数。
+# $#: 参数的总个数。
+# $@: 所有的参数列表
+# ${2:-}: 这是一种安全的取值方式。如果用户传了 --node 但后面没跟版本号，它会赋值为空字符串而不是报错。
+# shift 2: 处理完一对参数（如 --node 和 18.20.8）后，将参数列表向前移动两位，继续处理下一个参数
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile)
@@ -134,7 +200,7 @@ if [[ "$PROFILE" != "ca11" && "$PROFILE" != "ca12" && "$PROFILE" != "ca14" && "$
   echo "Invalid profile: $PROFILE" >&2
   usage
 fi
-
+# 检查当前用户是否为 root
 if [[ "${EUID}" -ne 0 ]]; then
   SUDO="sudo"
 else
@@ -145,16 +211,58 @@ fi
 # 工具函数
 # ============================================================================
 
-# 检查命令是否存在
+# 检查必需的系统命令是否存在
+# 
+# 功能说明:
+#   验证指定的命令是否在当前系统的 PATH 中可用
+#   如果命令不存在，输出错误信息并以退出码 3 终止脚本
+# 
+# 参数:
+#   $1 - cmd: 要检查的命令名称（例如: "curl", "tar", "unzip"）
+# 
+# 返回值:
+#   0 - 命令存在
+#   不返回（命令不存在时调用 exit 3）
+# 
+# 使用示例:
+#   require_cmd curl
+#   require_cmd tar
+# ============================================================================
 require_cmd() {
   local cmd="$1"
+  # 变量 $cmd 的值中包含空格或特殊字符，不加引号会导致 Shell 将其拆分为多个参数
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Missing required command: $cmd" >&2
     exit 3
   fi
 }
 
-# 下载文件 (如果不存在)
+# 下载文件到指定位置（如果文件尚不存在）
+# 
+# 功能说明:
+#   从指定 URL 下载文件到本地路径
+#   如果目标文件已存在，则跳过下载
+#   支持 curl 和 wget 两种下载工具，优先使用 curl
+#   包含重试机制、SSL 配置和文件完整性验证
+# 
+# 参数:
+#   $1 - url: 文件的下载 URL
+#   $2 - out: 本地保存的文件路径
+# 
+# 返回值:
+#   0 - 下载成功或文件已存在
+#   不返回（失败时调用 exit 3）
+# 
+# 特性:
+#   - 自动创建父目录
+#   - curl 配置：5次重试，每次间隔3秒，超时限制300秒
+#   - wget 配置：5次尝试，重试间隔3秒，超时30秒
+#   - 验证下载的文件不为空
+#   - 显示文件大小信息
+# 
+# 依赖:
+#   - curl 或 wget 命令必须可用
+# ============================================================================
 download_if_missing() {
   local url="$1"
   local out="$2"
@@ -207,7 +315,25 @@ download_if_missing() {
   echo "Download completed: $out ($(du -h "$out" | cut -f1))"
 }
 
-# 检测系统架构
+# 检测当前系统的 CPU 架构（用于 Node.js）
+# 
+# 功能说明:
+#   通过 uname -m 获取系统架构信息
+#   将其转换为 Node.js 下载 URL 中使用的架构标识符
+# 
+# 参数:
+#   无
+# 
+# 返回值:
+#   通过标准输出返回架构字符串:
+#   - "x64": x86_64 架构
+#   - "arm64": aarch64 或 arm64 架构
+#   不支持的架构会输出错误信息并以退出码 4 终止
+# 
+# 输出示例:
+#   x64
+#   arm64
+# ============================================================================
 detect_arch() {
   local arch
   arch="$(uname -m)"
@@ -221,7 +347,26 @@ detect_arch() {
   esac
 }
 
-# 检测 JDK 架构
+# 检测当前系统的 CPU 架构（用于 JDK）
+# 
+# 功能说明:
+#   通过 uname -m 获取系统架构信息
+#   将其转换为 Adoptium JDK 下载 URL 中使用的架构标识符
+#   与 detect_arch 的区别在于 aarch64 返回 "aarch64" 而非 "arm64"
+# 
+# 参数:
+#   无
+# 
+# 返回值:
+#   通过标准输出返回架构字符串:
+#   - "x64": x86_64 架构
+#   - "aarch64": aarch64 或 arm64 架构
+#   不支持的架构会输出错误信息并以退出码 4 终止
+# 
+# 输出示例:
+#   x64
+#   aarch64
+# ============================================================================
 detect_jdk_arch() {
   local arch
   arch="$(uname -m)"
@@ -235,7 +380,24 @@ detect_jdk_arch() {
   esac
 }
 
-# 检查磁盘空间
+# 检查指定路径的可用磁盘空间
+# 
+# 功能说明:
+#   检查给定路径所在文件系统的可用空间是否满足最低要求
+#   如果路径不存在，会向上查找直到找到存在的父目录
+# 
+# 参数:
+#   $1 - path: 要检查的路径
+#   $2 - required_mb: 所需的最小空间（单位：MB），默认为 500MB
+# 
+# 返回值:
+#   0 - 磁盘空间充足
+#   1 - 磁盘空间不足（同时输出错误信息）
+# 
+# 使用示例:
+#   check_disk_space /tmp 1024    # 检查 /tmp 是否有至少 1GB 空间
+#   check_disk_space /opt/java     # 检查 /opt/java 是否有至少 500MB 空间
+# ============================================================================
 check_disk_space() {
   local path="$1"
   local required_mb="${2:-500}"  # 默认需要 500MB
@@ -257,7 +419,29 @@ check_disk_space() {
   return 0
 }
 
-# 验证压缩文件
+# 验证压缩文件的完整性和有效性
+# 
+# 功能说明:
+#   检查压缩文件是否存在且格式有效
+#   支持自动检测压缩格式（tar.gz, tar.xz, tar.bz2, tar, zip）
+#   使用相应的工具验证文件完整性
+# 
+# 参数:
+#   $1 - archive: 压缩文件的路径
+#   $2 - archive_type: 压缩类型（auto/tar/zip），默认为 auto 自动检测
+# 
+# 返回值:
+#   0 - 文件有效或格式未知（发出警告）
+#   1 - 文件不存在或验证失败（输出错误信息）
+# 
+# 验证方法:
+#   - tar 格式: 使用 tar -tf 列出内容
+#   - zip 格式: 使用 unzip -t 测试完整性
+# 
+# 使用示例:
+#   verify_archive "node.tar.xz"           # 自动检测格式
+#   verify_archive "gradle.zip" "zip"      # 明确指定为 zip 格式
+# ============================================================================
 verify_archive() {
   local archive="$1"
   local archive_type="${2:-auto}"  # auto, tar, zip
@@ -302,7 +486,40 @@ verify_archive() {
   return 0
 }
 
-# 通用解压函数
+# 通用的压缩文件解压函数
+# 
+# 功能说明:
+#   将压缩文件解压到指定目录
+#   支持多种压缩格式：tar.gz, tar.xz, tar.bz2, tar, zip
+#   在解压前会验证文件完整性并检查磁盘空间
+#   记录解压日志以便调试
+# 
+# 参数:
+#   $1 - archive: 压缩文件的路径
+#   $2 - dest: 解压目标目录
+#   $3 - archive_type: 压缩类型（auto/tar/zip），默认为 auto 自动检测
+# 
+# 返回值:
+#   0 - 解压成功
+#   1 - 解压失败（输出详细错误信息）
+# 
+# 工作流程:
+#   1. 验证压缩文件的有效性
+#   2. 检查目标路径的磁盘空间（需要压缩包大小的 3 倍）
+#   3. 创建目标目录
+#   4. 根据文件扩展名选择相应的解压命令
+#   5. 执行解压操作并记录日志
+#   6. 清理临时日志文件
+# 
+# 依赖:
+#   - verify_archive: 验证压缩文件
+#   - check_disk_space: 检查磁盘空间
+#   - tar/unzip: 系统解压工具
+# 
+# 使用示例:
+#   extract_archive "node.tar.xz" /tmp
+#   extract_archive "gradle.zip" /opt/gradle "zip"
+# ============================================================================
 extract_archive() {
   local archive="$1"
   local dest="$2"
@@ -382,7 +599,32 @@ extract_archive() {
   return 0
 }
 
-# 获取最新 Temurin JDK URL
+# 获取指定主版本的最新 Temurin JDK 下载 URL
+# 
+# 功能说明:
+#   通过 Adoptium API 查询指定 Java 主版本的最新 JDK 下载地址
+#   自动检测系统架构并获取对应平台的 JDK
+# 
+# 参数:
+#   $1 - major: Java 主版本号（例如: 11, 17, 21）
+# 
+# 返回值:
+#   通过标准输出返回完整的 JDK 下载 URL
+#   如果 API 调用失败或找不到匹配的版本，可能返回空字符串
+# 
+# 输出示例:
+#   https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.10%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.10_7.tar.gz
+# 
+# 依赖:
+#   - require_cmd: 检查 curl 命令
+#   - detect_jdk_arch: 检测系统架构
+# 
+# API 端点:
+#   https://api.adoptium.net/v3/assets/latest/{major}/hotspot
+# 
+# 使用示例:
+#   url=$(get_latest_temurin_url 17)
+# ============================================================================
 get_latest_temurin_url() {
   local major="$1"
   local jdk_arch
@@ -395,7 +637,28 @@ get_latest_temurin_url() {
   curl -fsSL "$api" | grep -m1 '"link"' | sed -E 's/.*"link"\s*:\s*"([^"]+)".*/\1/'
 }
 
-# 根据版本号获取 Temurin JDK URL
+# 根据具体版本号构建 Temurin JDK 下载 URL
+# 
+# 功能说明:
+#   根据完整的 Java 版本号构造 GitHub 上的 Temurin JDK 下载地址
+#   处理版本号中的特殊字符（+ 替换为 %2B 用于 URL，替换为 _ 用于文件名）
+# 
+# 参数:
+#   $1 - version: 完整的 Java 版本号（例如: "17.0.10+7"）
+# 
+# 返回值:
+#   通过标准输出返回完整的 JDK 下载 URL
+# 
+# URL 格式:
+#   https://github.com/adoptium/temurin{major}-binaries/releases/download/jdk-{version_url}/OpenJDK{major}U-jdk_{arch}_linux_hotspot_{version_num}.tar.gz
+# 
+# 依赖:
+#   - detect_jdk_arch: 检测系统架构
+# 
+# 使用示例:
+#   url=$(get_temurin_url_from_version "17.0.10+7")
+#   # 返回: https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.10%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.10_7.tar.gz
+# ============================================================================
 get_temurin_url_from_version() {
   local version="$1"
   local major="${version%%.*}"
@@ -409,10 +672,13 @@ get_temurin_url_from_version() {
 # ============================================================================
 # 安装函数
 # ============================================================================
-
+# node-v20.19.5-linux-x64.tar.xz
 # 安装 Node.js
 # 下载并安装指定版本的 Node.js，配置软链接指向当前版本
-# 
+# -d 是一个文件测试操作符，用于判断指定的路径是否是一个存在的目录 
+# -f: 判断是否为存在的普通文件 (File)。
+# -e: 判断路径是否存在 (Exist)，不管是文件还是目录。
+# -x: 判断文件是否具有可执行权限 (Executable)。
 # 参数:
 #   $1 - version: Node.js 版本号（例如: "20.19.5"）
 # 
@@ -476,15 +742,16 @@ install_node() {
   fi
 
   # 创建或更新软链接，指向当前安装的版本
+  # -f (Force):
   $SUDO ln -sfn "$install_dir" "${NODE_ROOT}/current"
 }
 
 # 安装 Gradle
 # 下载并安装指定版本的 Gradle 构建工具
+# gradle-8.14.2-bin.zip
 # 
 # 参数:
 #   $1 - version: Gradle 版本号（例如: "8.14.2"）
-# 
 # 返回值:
 #   无显式返回值，失败时通过 exit code 退出
 install_gradle() {
@@ -544,7 +811,8 @@ install_java() {
   local version="$2"  # empty means "latest for major"
   local url
 
-  # 根据是否指定具体版本获取对应的下载 URL
+  # 根据是否指定具体版本获取对应的下载 URL 
+  # -n 是一个字符串测试操作符，用于判断字符串的长度是否不为零
   if [[ -n "$version" ]]; then
     url="$(get_temurin_url_from_version "$version")"
   else
@@ -556,7 +824,8 @@ install_java() {
   local archive="${JAVA_CACHE}/${file_name}"
   local install_dir
 
-  # 确定 Java 安装目录路径
+  # 确定 Java 安装目录路径 
+  # %%: 表示从变量值的末尾开始匹配，并删除最长的匹配部分 ${version%%+*} 会找到第一个 +，并把 +7 删掉
   if [[ -n "$version" ]]; then
     install_dir="${JAVA_ROOT}/jdk-${version%%+*}"
   else
@@ -581,8 +850,10 @@ install_java() {
     
     # 3. 获取压缩包内的顶层目录名
     local extracted
+    echo "Checking archive: $archive"
+    # -tzf 列出 tar.gz 包的内容，grep 提取顶层目录，sort -u 去重，head -n1 取第一个
     extracted="$(tar -tzf "$archive" 2>/dev/null | grep -o '^[^/]\+' | sort -u | head -n1)"
-    
+    # -z 是字符串测试操作符，用于判断字符串的长度是否为零（Zero
     if [[ -z "$extracted" ]]; then
       echo "ERROR: Cannot determine extracted directory name from archive" >&2
       echo "Archive: $archive" >&2
@@ -648,6 +919,7 @@ install_java() {
 
 # 安装 Android Command Line Tools
 # 下载并安装 Android SDK 命令行工具
+# 采用基于版本号的目录管理，并自动更新 latest 软链接
 # 
 # 参数:
 #   $1 - version: cmdline-tools 版本号（例如: "14742923"）
@@ -656,17 +928,20 @@ install_java() {
 #   无显式返回值，失败时通过 exit code 退出
 install_cmdline_tools() {
   local version="$1"
+  echo "Installing Android cmdline-tools version: $version"
   local archive="${CMDLINE_CACHE}/commandlinetools-linux-${version}_latest.zip"
   local url="https://dl.google.com/android/repository/commandlinetools-linux-${version}_latest.zip"
-  local latest_dir="${ANDROID_SDK_ROOT}/cmdline-tools/latest"
-  local sdkmanager_path="${latest_dir}/bin/sdkmanager"
+  
+  # 定义基于版本的安装目录和统一的 latest 软链接
+  local install_dir="${ANDROID_SDK_ROOT}/cmdline-tools/${version}"
+  local latest_link="${ANDROID_SDK_ROOT}/cmdline-tools/latest"
+  local sdkmanager_path="${install_dir}/bin/sdkmanager"
 
   download_if_missing "$url" "$archive"
 
-  if [[ ! -x "$sdkmanager_path" ]]; then
-    echo "Installing Android cmdline-tools -> ${latest_dir}"
+  if [[ ! -d "$install_dir" ]]; then
+    echo "Installing Android cmdline-tools ${version} -> ${install_dir}"
     $SUDO mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools"
-    $SUDO rm -rf "${ANDROID_SDK_ROOT}/cmdline-tools/latest"
     
     # 清理临时目录
     if [[ -d /tmp/cmdline-tools-extract ]]; then
@@ -681,37 +956,102 @@ install_cmdline_tools() {
       exit 5
     fi
     
-    # 移动至目标位置
+    # 移动至目标位置 (处理压缩包内可能存在的顶层 cmdline-tools 文件夹)
     if [[ -d /tmp/cmdline-tools-extract/cmdline-tools ]]; then
-      if ! $SUDO mv /tmp/cmdline-tools-extract/cmdline-tools "${latest_dir}"; then
+      if ! $SUDO mv /tmp/cmdline-tools-extract/cmdline-tools "${install_dir}"; then
         echo "ERROR: Failed to move cmdline-tools" >&2
         exit 5
       fi
     else
-      if ! $SUDO mv /tmp/cmdline-tools-extract "${latest_dir}"; then
+      if ! $SUDO mv /tmp/cmdline-tools-extract "${install_dir}"; then
         echo "ERROR: Failed to move cmdline-tools" >&2
         exit 5
       fi
     fi
     
     # 设置执行权限
-    $SUDO chmod -R 755 "${latest_dir}/bin"
+    $SUDO chmod -R 755 "${install_dir}/bin"
     
     # 清理临时目录
     $SUDO rm -rf /tmp/cmdline-tools-extract
     
     echo "Android cmdline-tools installation completed successfully"
   else
-    echo "Android cmdline-tools already installed: ${latest_dir}"
+    echo "Android cmdline-tools already installed: ${install_dir}"
   fi
+
+  # 统一更新 latest 软链接，确保指向当前配置的版本
+  echo "Updating symlink: ${latest_link} -> ${install_dir}"
+  
+  # 关键步骤：无论 latest 是文件、目录还是链接，都强制删除，确保 ln -sfn 能成功创建纯软链接
+  $SUDO rm -rf "${latest_link}"
+  # 操作（删除并重建 latest 软链接）只会影响管理工具本身，不会影响你已经安装好的 Android 平台包和构建工具
+  if ! $SUDO ln -sfn "${install_dir}" "${latest_link}"; then
+    echo "ERROR: Failed to create symlink for cmdline-tools" >&2
+    exit 5
+  fi
+  
+  echo "Symlink updated successfully."
 }
 
-# 获取 sdkmanager 路径
+# 获取 sdkmanager 工具的完整路径
+# 
+# 功能说明:
+#   返回 Android SDK cmdline-tools 中 sdkmanager 命令的绝对路径
+#   sdkmanager 是 Android SDK 的包管理工具，用于安装和管理 SDK 组件
+# 
+# 参数:
+#   无
+# 
+# 返回值:
+#   通过标准输出返回 sdkmanager 的路径字符串
+# 
+# 输出示例:
+#   /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+# 
+# 使用场景:
+#   在安装 Android SDK 组件之前获取工具路径
+#   验证 cmdline-tools 是否正确安装
+# 
+# 使用示例:
+#   sdkmanager_path=$(sdkmanager_cmd)
+#   "$sdkmanager_path" --list
+# ============================================================================
 sdkmanager_cmd() {
   echo "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
 }
 
-# 安装 Android SDK 组件
+# 安装指定的 Android SDK 组件
+# 
+# 功能说明:
+#   使用 sdkmanager 工具安装 Android SDK 的核心组件
+#   包括 platform-tools、指定版本的 platform 和 build-tools
+#   自动接受所有许可证协议
+# 
+# 参数:
+#   $1 - build_tools: Android build-tools 版本号（例如: "33.0.2"）
+#   $2 - platform_api: Android Platform API 级别（例如: 33）
+# 
+# 返回值:
+#   无显式返回值，失败时以退出码 5 终止脚本
+# 
+# 安装的组件:
+#   - platform-tools: Android 平台工具（adb, fastboot 等）
+#   - platforms;android-{API}: 指定 API 级别的 Android 平台
+#   - build-tools;{version}: 指定版本的构建工具
+# 
+# 依赖:
+#   - sdkmanager_cmd: 获取 sdkmanager 路径
+#   - ANDROID_SDK_ROOT: Android SDK 根目录环境变量
+# 
+# 注意事项:
+#   - 会自动设置 ANDROID_HOME 和 ANDROID_SDK_ROOT 环境变量
+#   - 使用 yes 命令自动接受许可证
+#   - 如果 sdkmanager 不可用，会输出错误并退出
+# 
+# 使用示例:
+#   install_android_packages "33.0.2" "33"
+# ============================================================================
 install_android_packages() {
   local build_tools="$1"
   local platform_api="$2"
@@ -729,7 +1069,43 @@ install_android_packages() {
   "$sdkmanager" "platform-tools" "platforms;android-${platform_api}" "build-tools;${build_tools}"
 }
 
-# 写入全局环境变量配置
+# 写入全局环境变量配置文件
+# 
+# 功能说明:
+#   创建 /etc/profile.d/cordova-env.sh 文件，配置 Cordova 构建环境的全局环境变量
+#   同时在当前 shell 会话中立即生效这些环境变量
+#   该文件会在用户登录或打开新终端时自动加载
+# 
+# 参数:
+#   无
+# 
+# 返回值:
+#   无显式返回值
+# 
+# 配置的环境变量:
+#   - ANDROID_HOME: Android SDK 根目录 (/opt/android-sdk)
+#   - ANDROID_SDK_ROOT: Android SDK 根目录（同上）
+#   - JAVA_HOME: Java 安装目录 (/opt/java/current)
+#   - NODE_HOME: Node.js 安装目录 (/opt/node/current)
+#   - GRADLE_HOME: Gradle 安装目录 (/opt/gradle/current)
+#   - PATH: 追加所有工具的 bin 目录到 PATH
+# 
+# 文件权限:
+#   设置为 644（所有者可读写，其他用户只读）
+# 
+# 副作用:
+#   - 创建或覆盖 /etc/profile.d/cordova-env.sh
+#   - 修改当前 shell 的环境变量
+#   - 可能需要 sudo 权限
+# 
+# 注意事项:
+#   - 使用 literal paths 而非变量引用，避免 profile.d 中的 shell 展开问题
+#   - 在更新 PATH 时会检查避免重复添加
+# 
+# 使用示例:
+#   write_global_env
+#   # 之后运行: source /etc/profile.d/cordova-env.sh
+# ============================================================================
 write_global_env() {
   local env_file="/etc/profile.d/cordova-env.sh"
   echo "Writing global environment: ${env_file}"
@@ -765,7 +1141,54 @@ EOF
   echo "Environment variables configured in current session"
 }
 
-# 验证环境设置
+# 验证 Cordova 构建环境的完整性和正确性
+# 
+# 功能说明:
+#   全面检查所有已安装的组件和环境变量配置
+#   验证 Java、Node.js、Gradle 和 Android SDK 是否正确安装并可执行
+#   输出详细的检查结果和诊断信息
+# 
+# 参数:
+#   无
+# 
+# 返回值:
+#   0 - 所有检查通过
+#   1 - 部分检查失败（输出失败数量）
+# 
+# 检查项目:
+#   1. 环境变量设置（JAVA_HOME, NODE_HOME, GRADLE_HOME, ANDROID_HOME）
+#   2. PATH 中包含必要的 bin 目录
+#   3. Java 可执行文件和版本
+#   4. Node.js 可执行文件和版本
+#   5. Gradle 可执行文件和版本
+#   6. Android SDK 目录结构
+#   7. 软链接有效性
+# 
+# 输出格式:
+#   显示每个组件的检查状态（✓ 或 ✗）
+#   对于软链接，显示实际指向的目标
+#   最后汇总检查结果
+# 
+# 自动修复:
+#   - 如果环境变量未设置，会自动设置为默认值
+#   - 如果 JAVA_HOME 无效，会尝试查找可用的 Java 安装
+#   - 如果 PATH 缺少必要目录，会自动添加
+# 
+# 使用示例:
+#   verify_environment
+#   # 输出类似:
+#   # ==========================================
+#   # 验证环境设置
+#   # ==========================================
+#   # ✓ Java: /opt/java/current/bin/java
+#   #   openjdk version "17.0.10" 2024-01-16
+#   # ✓ Node.js: /opt/node/current/bin/node
+#   #   v20.19.5
+#   # ✓ Gradle: /opt/gradle/current/bin/gradle
+#   #   Gradle 8.14.2
+#   # ✓ Android SDK: /opt/android-sdk
+#   # ✓ 所有环境检查通过
+# ============================================================================
 verify_environment() {
   echo ""
   echo "=========================================="
