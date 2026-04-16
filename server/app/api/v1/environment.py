@@ -1,10 +1,11 @@
 import json
 import os
+import traceback
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from loguru import logger
 from app.services.env_script_executor_service import ScriptExecutor
-from app.services.active_env_config_service import active_env_config_service
 
 # 创建路由器
 router = APIRouter()
@@ -23,7 +24,7 @@ class SetupEnvironmentRequest(BaseModel):
     java_version: Optional[str] = None  # Java 完整版本
     gradle_version: Optional[str] = None  # Gradle 版本
     build_tools_version: Optional[str] = None  # Android Build Tools 版本
-    platform_api: Optional[str] = None  # Android Platform API 版本
+    platform_api: Optional[str] = None  # Android Platform API 版本 "36" (纯 API 级别数字)
     cmdline_version: Optional[str] = None  # Command Line Tools 版本
 
 
@@ -42,13 +43,19 @@ async def setup_environment(request: SetupEnvironmentRequest):
         dict: 执行结果，包含成功状态、输出信息等
     """
     try:
+        # 打印请求对象
+        print(f"=== Request Object ===")
+        print(f"Type: {type(request)}")
+        print(f"Dict: {request.model_dump()}")
+        logger.info(f"Loaded presets: {request}")
+        print(f"=====================")
         # 如果用户没有指定具体版本，则从预设配置中自动补全
         if not any([request.node_version, request.java_major, request.gradle_version]):
             config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'configs', 'env_presets.json')
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     presets = json.load(f)
-                
+                logger.info(f"Loaded presets: {presets}")
                 if request.profile in presets:
                     profile_config = presets[request.profile]
                     profile_details = profile_config.get('profile', {})
@@ -67,7 +74,8 @@ async def setup_environment(request: SetupEnvironmentRequest):
                     if not request.platform_api:
                         request.platform_api = str(profile_details.get('sdk'))
             except Exception as e:
-                logger.warning(f"Could not load presets for auto-fill: {e}")
+                logger.error(f"Could not load presets for auto-fill: {e}")
+                logger.error(f"Exception traceback:\n{traceback.format_exc()}")
 
         result = await script_executor.setup_cordova_environment(
             profile=request.profile,
@@ -99,6 +107,8 @@ async def setup_environment(request: SetupEnvironmentRequest):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Unexpected error in setup_environment: {e}")
+        logger.error(f"Exception traceback:\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -121,122 +131,8 @@ def get_presets():
     
     return {
         "presets": presets,
-        "default": "ca12",
+        "default": "",
         "count": len(presets)
     }
 
 
-class ActivateConfigRequest(BaseModel):
-    """
-    激活配置请求模型
-    """
-    profile: str  # 配置名称 (如 "ca11", "ca12")
-
-
-@router.post("/activate")
-async def activate_config(request: ActivateConfigRequest):
-    """
-    激活指定的环境配置
-    
-    将配置保存到本地文件 (.active-env.json)，记录当前使用的配置。
-    
-    Args:
-        request: 激活配置请求
-        
-    Returns:
-        dict: 激活结果
-    """
-    try:
-        # 验证配置是否存在
-        presets_response = get_presets()
-        if request.profile not in presets_response["presets"]:
-            raise HTTPException(
-                status_code=404,
-                detail=f"配置 '{request.profile}' 不存在。可用配置: {list(presets_response['presets'].keys())}"
-            )
-        
-        # 获取配置详情
-        preset_config = presets_response["presets"][request.profile]
-        
-        # 保存激活的配置
-        success = active_env_config_service.save_active_config(
-            profile=request.profile,
-            config_data=preset_config
-        )
-        
-        if not success:
-            raise HTTPException(
-                status_code=500,
-                detail="保存激活配置失败"
-            )
-        
-        return {
-            "success": True,
-            "message": f"配置 '{request.profile}' 已激活",
-            "profile": request.profile,
-            "config": preset_config
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/active")
-def get_active_config():
-    """
-    获取当前激活的配置
-    
-    Returns:
-        dict: 当前激活的配置信息，如果没有激活则返回 null
-    """
-    try:
-        active_config = active_env_config_service.get_active_config()
-        
-        if active_config is None:
-            return {
-                "success": True,
-                "active": False,
-                "profile": None,
-                "config": None
-            }
-        
-        return {
-            "success": True,
-            "active": True,
-            "profile": active_config.get("profile"),
-            "config": active_config.get("config"),
-            "activated_at": active_config.get("timestamp")
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/active")
-def deactivate_config():
-    """
-    清除当前激活的配置
-    
-    Returns:
-        dict: 操作结果
-    """
-    try:
-        success = active_env_config_service.clear_active_config()
-        
-        if not success:
-            raise HTTPException(
-                status_code=500,
-                detail="清除激活配置失败"
-            )
-        
-        return {
-            "success": True,
-            "message": "激活配置已清除"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

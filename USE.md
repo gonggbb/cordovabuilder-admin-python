@@ -416,3 +416,102 @@ docker-compose logs -f app-service
 GRADLE_HOME=/opt/gradle/current
 错误: 加载主类 com.android.sdklib.tool.sdkmanager.SdkManagerCli 时出现 LinkageError
 java.lang.UnsupportedClassVersionError: com/android/sdklib/tool/sdkmanager/SdkManagerCli has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+
+你的 Shell (PID 1000)
+└─ Python FastAPI (PID 2000)
+└─ subprocess bash (PID 3000) ← 脚本在这里运行
+└─ source /etc/profile.d/cordova-env.sh ✅ 只影响 PID 3000
+
+脚本结束后:
+
+- PID 3000 消失
+- 环境变量丢失 ❌
+- PID 1000 和 PID 2000 不受影响
+
+执行 setup_cordova_env.sh 脚本
+↓
+写入 4 个配置文件:
+
+1. /etc/environment ← PAM 模块读取
+2. ~/.bashrc ← 交互式 bash 读取 ✅
+3. /etc/bash.bashrc ← 系统级 bash 读取 ✅
+4. /etc/profile.d/cordova-env.sh ← 登录 shell 读取
+   ↓
+   Python 服务调用 \_reload_system_environment()
+   ↓
+   更新 os.environ
+   ↓
+   所有后续操作生效
+
+# 停止当前容器
+
+docker-compose down
+
+# 重新构建镜像
+
+docker-compose build
+
+# 启动服务
+
+docker-compose up -d
+
+# 查看日志
+
+docker logs -f cordovabuilder-python-admin
+docker exec -it cordovabuilder-python-app bash
+
+ls $(which cordova) # ✅ 正确：先执行 which，再用结果作为 ls 的参数
+ls `which cordova` # ✅ 正确：同上（旧式写法）
+ls -la $(which cordova)
+
+drwxrwxrwx 1 root root 4096 4月 16 05:31 www
+root@e18f6c1b11df:/workspace/v12# ls -la $(which cordova)
+lrwxrwxrwx 1 root root 39 4月 16 07:55 /opt/node/current/bin/cordova -> ../lib/node_modules/cordova/bin/cordova
+
+/opt/
+├── node/
+│ ├── v18.20.8/
+│ │ ├── bin/
+│ │ │ ├── node
+│ │ │ ├── npm
+│ │ │ └── cordova → ../lib/node_modules/cordova/bin/cordova
+│ │ └── lib/
+│ │ └── node_modules/
+│ │ └── cordova@12.0.0/
+│ └── v20.19.5/
+│ ├── bin/
+│ │ ├── node
+│ │ ├── npm
+│ │ └── cordova → ../lib/node_modules/cordova/bin/cordova
+│ └── lib/
+│ └── node_modules/
+│ └── cordova@13.0.0/
+
+# 设置 npm 全局安装前缀
+
+npm config set prefix /opt/cordova-global
+
+maven { url 'https://maven.aliyun.com/repository/google' }
+maven { url 'https://maven.aliyun.com/repository/public' }
+maven { url 'https://maven.aliyun.com/repository/jcenter' }
+
+
+# 问题
+
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:packageRelease'.
+> Unable to delete directory '/workspace/v15/platforms/android/app/build/outputs/apk/release'
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+
+
+root@a333b050c679:/workspace/v15# sh ./apk-automatic-v2.sh --project-dir /workspace/v15 --keystore-path /workspace/v15/myApp15.p12 --key-alias myApp15 --keystore-password 123456 --key-password 123456

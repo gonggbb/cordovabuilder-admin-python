@@ -1,0 +1,11 @@
+{
+  "android": {
+    "release": {
+      "keystore": "myApp15.p12",
+      "storePassword": "123456",
+      "alias": "myApp15",
+      "password": "123456",
+      "keystoreType": "PKCS12"
+    }
+  }
+}

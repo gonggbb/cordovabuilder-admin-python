@@ -122,3 +122,4 @@ Makefile
 *.dll
 *.bat
 *.cmd
+app/downloads

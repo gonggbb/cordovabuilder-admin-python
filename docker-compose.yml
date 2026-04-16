@@ -9,7 +9,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cordovabuilder-python-app
+    container_name: cordovabuilder-python-admin
     ports:
       - "80:80"  # Nginx 端口，同时提供前端和 API
       - "3000:3000"  # FastAPI 直接访问（调试用）
@@ -18,9 +18,9 @@ services:
       - PORT=3000
       - LOGURU_LEVEL=INFO
     volumes:
-      - .:/app 
       # 挂载工作区目录（持久化构建产物）
       - ./workspace:/workspace
+      # - ./server:/app 
       # 挂载下载目录（避免重复下载）
       - ./downloads/node:/tmp/node-install
       - ./downloads/java:/tmp/java-install

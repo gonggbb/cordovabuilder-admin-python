@@ -15,7 +15,7 @@ WORKDIR /build
 RUN pip install --no-cache-dir poetry
 
 # 复制依赖配置文件
-COPY pyproject.toml poetry.lock* ./
+COPY ./server/pyproject.toml ./server/poetry.lock* ./
 
 # 安装依赖到虚拟环境
 RUN poetry config virtualenvs.create false \
@@ -57,21 +57,22 @@ ENV LANG=zh_CN.UTF-8 \
     LANGUAGE=zh_CN:zh \
     LC_ALL=zh_CN.UTF-8
 
-# 设置工作目录
-WORKDIR /app
+
 
 # 从构建阶段复制依赖
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# 复制应用代码
-COPY . .
+# 复制应用代码 服务端
+COPY ./server /app
 
+# 设置工作目录
+WORKDIR /workspace
 # 复制 Docker 环境配置
-COPY .env .env
+# COPY .env .env
 
 # 复制前端静态文件到 Nginx 目录
-COPY dist/ /var/www/html/
+COPY ./client/ /var/www/html/
 
 # 配置 Nginx
 RUN echo 'server { \
@@ -101,6 +102,7 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/sites-available/default
 
+
 # 暴露端口
 EXPOSE 80
 
@@ -109,7 +111,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/health || exit 1
 
 # 复制启动脚本
-COPY start-container.sh /start.sh
+COPY ./server/start-container.sh /start.sh
 RUN chmod +x /start.sh
 
 # 启动命令

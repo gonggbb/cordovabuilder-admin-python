@@ -2,76 +2,71 @@
   "ca11": {
     "name": "cordova-12-ca11",
     "description": "Cordova 12 + cordova-android 11.0.x",
-    "cordovaVersion": "12.x",
-    "cordovaAndroid": "11.0.x",
-    "buildTools": "^32.0.0",
     "profile": {
-      "platform_sdk": "32.0.0",
+      "platform_sdk": "32",
+      "build_tools": "32.0.0",
       "gradle": "7.4.2",
+      "java_major": "17",
       "java": "17.0.10+7",
       "node": "18.20.8",
-      "cmdline_version": "20",
-      "cmdline_serial": "14742923"
+      "cmdline_v": "20",
+      "cmdline_version": "14742923"
     }
   },
   "ca12": {
     "name": "cordova-12-ca12",
     "description": "Cordova 12 + cordova-android 12.0.x",
-    "cordovaVersion": "12.x",
-    "cordovaAndroid": "12.0.x",
-    "buildTools": "^33.0.0",
     "profile": {
-      "platform_sdk": "33.0.0",
+      "platform_sdk": "33",
+      "build_tools": "33.0.2",
       "gradle": "7.6",
+      "java_major": "17",
       "java": "17.0.10+7",
       "node": "18.20.8",
-      "cmdline_version": "20",
-      "cmdline_serial": "14742923"
+      "cmdline_v": "20",
+      "cmdline_version": "14742923"
     }
   },
   "ca13": {
     "name": "cordova-12-ca13",
     "description": "Cordova 12 + cordova-android 13.0.x",
-    "cordovaVersion": "12.x",
-    "cordovaAndroid": "13.0.x",
-    "buildTools": "^34.0.0",
     "profile": {
-      "platform_sdk": "34.0.0",
+      "platform_sdk": "34",
+      "build_tools": "34.0.0",
       "gradle": "8.7",
+      "java_major": "17",
       "java": "17.0.10+7",
       "node": "20.19.5",
-      "cmdline_version": "20",
-      "cmdline_serial": "14742923"
+      "cmdline_v": "20",
+      "cmdline_version": "14742923"
     }
   },
   "ca14": {
     "name": "cordova-13-ca14",
     "description": "Cordova 13 + cordova-android 14.0.x",
-    "cordovaVersion": "13.x",
-    "cordovaAndroid": "14.0.x",
-    "buildTools": "^35.0.0",
     "profile": {
-      "platform_sdk": "35.0.0",
+      "platform_sdk": "35",
+      "build_tools": "35.0.0",
       "gradle": "8.13",
+      "java_major": "17",
       "java": "17.0.10+7",
       "node": "20.19.5",
-      "cmdline_version": "20",
-      "cmdline_serial": "14742923"
+      "cmdline_v": "20",
+      "cmdline_version": "14742923"
     }
   },
   "ca15": {
     "name": "cordova-13-ca15",
     "description": "Cordova 13 + cordova-android 15.0.x",
-    "cordovaVersion": "13.x",
-    "cordovaAndroid": "15.0.x",
-    "buildTools": "^36.0.0",
     "profile": {
-      "platform_sdk": "36.0.0",
+      "platform_sdk": "36",
+      "build_tools": "36.0.0",
       "gradle": "8.14.2",
+      "java_major": "17",
       "java": "17.0.10+7",
       "node": "20.19.5",
-      "cmdline_version": "20",
-      "cmdline_serial": "14742923"
+      "cmdline_v": "20",
+      "cmdline_version": "14742923"
     }
   }
 }
