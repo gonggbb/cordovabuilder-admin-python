@@ -1,6 +1,4 @@
-根据当前项目结构，这是一个 **CordovaBuilder Admin Python 版本**的后端服务项目。以下是完整的目录结构概览：
-
-## 📁 项目整体结构
+## 项目整体结构
 
 ```
 cordovabuilder-admin-python/
@@ -24,7 +22,7 @@ cordovabuilder-admin-python/
 │   ├── README.md                    # 项目说明文档
 │   └── start-container.sh           # 容器启动脚本
 │
-├── shells/                          # 构建相关脚本 v2 版本脚本
+├── shells/                          # 构建相关脚本 v2 版本脚本 /user/local/bin/
 │   ├── sdk-check.sh                 # SDK 检查脚本
 │   ├── apk-automatic-v2.sh
 │   ├── apk-build-sign-v2.sh
@@ -55,44 +53,15 @@ cordovabuilder-admin-python/
 ├── docker-compose.yml               # Docker Compose 配置
 ├── .gitignore                       # Git 忽略配置
 ├── .dockerignore                    # Docker 忽略配置
-└── USE.md                           # 使用说明文档
+
 ```
 
-## 🎯 核心架构特点
-
-### 1. **分层架构**
-
-- **API 层**: `server/app/api/v1/environment.py` - 提供 RESTful 接口
-- **服务层**: `server/app/services/env_script_executor_service.py` - 调用 Shell 脚本
-- **脚本层**: `server/scripts/setup_cordova_env.sh` - 核心业务逻辑实现
-
-### 2. **技术栈**
+## 技术栈
 
 - **Web 框架**: FastAPI + Uvicorn
 - **依赖管理**: Poetry
 - **部署方式**: Docker + Docker Compose
 - **Python 版本**: 3.13
-
-### 3. **关键功能模块**
-
-- ✅ 环境配置管理（CRUD）
-- ✅ Cordova 环境自动化设置
-- ✅ 多版本支持（v12, v15）
-- ✅ APK 构建与签名脚本
-
-### 4. **设计模式**
-
-采用 **"脚本承载核心逻辑，API 负责调度"** 的模式：
-
-- 所有下载、安装、配置逻辑在 Bash 脚本中实现
-- Python 服务层仅通过 `subprocess` 异步调用脚本
-- 确保单一事实来源，便于维护和测试
-
-激活环境变量：
-
-```bash
-source /etc/profile.d/cordova-env.sh
-```
 
 ## Docker 部署
 
@@ -113,48 +82,18 @@ docker run -d \
   cordovabuilder-python:latest
 ```
 
-### 使用 Docker Compose
+## 使用 Docker Compose
 
 ```bash
 docker-compose up -d
-```
 
-## 测试
-
-### 运行 API 测试
-
-```bash
 # 确保服务已启动
-poetry run uvicorn app.main:app --reload --port 3000
-
-# 运行测试脚本
-python tests/test_environment_api.py
+# poetry run uvicorn app.main:app --reload --port 3000
 ```
 
-### 运行单元测试
+## 🚀 快速开始
 
-```bash
-poetry run pytest
-```
-
-## 开发指南
-
-### 添加新的预设配置
-
-1. 编辑 `scripts/setup_cordova_env.sh`
-2. 在 `apply_preset()` 函数中添加新的 case 分支
-3. 更新 `app/api/v1/environment.py` 中的 `get_presets()` 函数
-
-### 修改安装逻辑
-
-直接编辑 `scripts/setup_cordova_env.sh`，无需修改 Python 代码。
-
-### 调试脚本
-
-```bash
-# 启用详细输出
-bash -x scripts/setup_cordova_env.sh --profile ca12
-
-# 或直接执行
-sudo ./scripts/setup_cordova_env.sh --help
-```
+<video controls width="100%">
+  <source src="https://raw.githubusercontent.com/gonggbb/cordovabuilder-admin-python/main/Video%20Project%203.mp4" type="video/mp4">
+  您的浏览器不支持 HTML5 视频。
+</video>

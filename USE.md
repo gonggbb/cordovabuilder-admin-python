@@ -516,3 +516,10 @@ sh ./apk-automatic-v2.sh --project-dir /workspace/v15 --keystore-path /workspace
 sh ./apk-automatic-v2.sh --project-dir /workspace/v12 --keystore-path /workspace/v12/myApp12.p12 --key-alias myApp12 --keystore-password 123456 --key-password 123456
 
 docker tag cordovabuilder-admin-python-app-service:latest gamesg/cordovabuilder-admin-python:v1.0.1
+
+# mp4
+
+<video controls width="100%">
+  <source src="https://raw.githubusercontent.com/gonggbb/cordovabuilder-admin-python/main/Video%20Project%203.mp4" type="video/mp4">
+  您的浏览器不支持 HTML5 视频。
+</video>
