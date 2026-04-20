@@ -93,7 +93,4 @@ docker-compose up -d
 
 ## 快速开始
 
-<video controls width="100%">
-  <source src="https://raw.githubusercontent.com/gonggbb/cordovabuilder-admin-python/main/Video%20Project%203.mp4" type="video/mp4">
-  您的浏览器不支持 HTML5 视频。
-</video>
+![](https://github.com/gonggbb/cordovabuilder-admin-python/blob/main/Video%20Project%203.mp4)
