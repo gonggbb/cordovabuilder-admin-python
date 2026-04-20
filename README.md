@@ -1,3 +1,7 @@
+## 演示
+
+![演示](https://raw.githubusercontent.com/gonggbb/cordovabuilder-admin-python/main/assets/use.gif)
+
 ## 项目整体结构
 
 ```
@@ -90,7 +94,3 @@ docker-compose up -d
 # 确保服务已启动
 # poetry run uvicorn app.main:app --reload --port 3000
 ```
-
-## 快速开始
-
-![./assets/use.gif](./assets/use.gif)
