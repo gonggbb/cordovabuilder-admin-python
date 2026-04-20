@@ -91,7 +91,7 @@ docker-compose up -d
 # poetry run uvicorn app.main:app --reload --port 3000
 ```
 
-## 🚀 快速开始
+## 快速开始
 
 <video controls width="100%">
   <source src="https://raw.githubusercontent.com/gonggbb/cordovabuilder-admin-python/main/Video%20Project%203.mp4" type="video/mp4">

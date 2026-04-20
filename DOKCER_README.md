@@ -2,6 +2,10 @@
 
 自动化 Cordova 移动应用环境配置与 APK 构建管理系统。基于 FastAPI + Docker，简化开发环境配置、依赖管理和 APK 构建流程。
 
+**视频链接**
+
+https://github.com/gonggbb/cordovabuilder-admin-python/blob/main/Video%20Project%203.mp4
+
 ## 快速开始
 
 ### 方式一：Docker 命令
