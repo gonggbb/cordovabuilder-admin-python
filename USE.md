@@ -495,23 +495,24 @@ maven { url 'https://maven.aliyun.com/repository/google' }
 maven { url 'https://maven.aliyun.com/repository/public' }
 maven { url 'https://maven.aliyun.com/repository/jcenter' }
 
-
 # 问题
-
-
 
 FAILURE: Build failed with an exception.
 
-* What went wrong:
-Execution failed for task ':app:packageRelease'.
-> Unable to delete directory '/workspace/v15/platforms/android/app/build/outputs/apk/release'
+- What went wrong:
+  Execution failed for task ':app:packageRelease'.
 
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
+  > Unable to delete directory '/workspace/v15/platforms/android/app/build/outputs/apk/release'
 
+- Try:
+  > Run with --stacktrace option to get the stack trace.
+  > Run with --info or --debug option to get more log output.
+  > Run with --scan to get full insights.
+  > Get more help at https://help.gradle.org.
 
+root@a333b050c679:/workspace/v15#
+sh ./apk-automatic-v2.sh --project-dir /workspace/v15 --keystore-path /workspace/v15/myApp15.p12 --key-alias myApp15 --keystore-password 123456 --key-password 123456
 
-root@a333b050c679:/workspace/v15# sh ./apk-automatic-v2.sh --project-dir /workspace/v15 --keystore-path /workspace/v15/myApp15.p12 --key-alias myApp15 --keystore-password 123456 --key-password 123456
+sh ./apk-automatic-v2.sh --project-dir /workspace/v12 --keystore-path /workspace/v12/myApp12.p12 --key-alias myApp12 --keystore-password 123456 --key-password 123456
+
+docker tag cordovabuilder-admin-python-app-service:latest gamesg/cordovabuilder-admin-python:v1.0.1

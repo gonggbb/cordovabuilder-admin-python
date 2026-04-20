@@ -66,6 +66,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # 复制应用代码 服务端
 COPY ./server /app
 
+# 复制 Shell 脚本到全局可执行路径（直接放到 /usr/local/bin/）
+COPY ./shells/*.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh
+
 # 设置工作目录
 WORKDIR /workspace
 # 复制 Docker 环境配置
