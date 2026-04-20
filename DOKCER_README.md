@@ -2,7 +2,7 @@
 
 自动化 Cordova 移动应用环境配置与 APK 构建管理系统。基于 FastAPI + Docker，简化开发环境配置、依赖管理和 APK 构建流程。
 
-![]
+![./assets/use.gif](./assets/use.gif)
 
 ## 快速开始
 

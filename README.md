@@ -93,4 +93,4 @@ docker-compose up -d
 
 ## 快速开始
 
-![](https://github.com/gonggbb/cordovabuilder-admin-python/blob/main/Video%20Project%203.mp4)
+![./assets/use.gif](./assets/use.gif)
